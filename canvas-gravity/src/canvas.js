@@ -1,74 +1,48 @@
-// Initial Setup;
-const canvas = document.querySelector('canvas');
-const c = canvas.getContext('2d');
+// Const Variables
+const INTERVAL_TIME = 2000,
+      GRAVITY = .85,
+      FRICTION = .6,
+      FLOOR_SIZE = 100,
+      STAR_REDUCTION = .6,
+      DX_VALUE = 7,
+      OBJECTS_ARRAY = [],
+      STAR_COLOR = "rgba(224, 225, 255, 1)",
+      STAR_GLOW = "rgba(224, 225, 255, .09)",
+      FLOOR_COLOR = "rgb(30, 35, 38)",
+      LOWER_FLOOR_COLOR = "rgb(20, 20, 20)";
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+// Init Setup
+const CANVAS = document.querySelector('canvas');
+const CTX = CANVAS.getContext('2d');
+CANVAS.width = innerWidth;
+CANVAS.height = innerHeight;
 
-// Variables;
-const mouse = {
-    x: innerWidth / 2,
-    y: innerHeight / 2
-}
-
-const gravity = .85;
-const friction = .6;
-const floor = 0;
-const dxValue = 7;
-const ballArray = [];
-
-addEventListener('click', () => {
-  skyFall()
-});
-
-addEventListener('resize', () => {
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-    init();
-});
-
-// Utility Functions;
 function randomIntFromRange(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-function randomColor(colors) {
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
-function distance(x1, y1, x2, y2) {
-    const xDist = x2 - x1
-    const yDist = y2 - y1
-
-    return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
-}
-
-// Objects;
-function Ball(x, y, dx, dy, radius, ballArray) {
+function Ball(x, y, dx, dy, radius, OBJECTS_ARRAY) {
     this.x = x;
     this.y = y;
     this.dx = dx;
     this.dy = dy;
     this.radius = radius;
-    this.ballArray = ballArray;
-    this.color = "rgba(224, 225, 255, 1)";
-    this.glow = "rgba(224, 225, 255, .09)";
-
-    // this.glow = "rgba(40, 41, 56, 0)";
+    this.OBJECTS_ARRAY = OBJECTS_ARRAY;
 
   this.update = function() {
-    if (this.y + this.radius + this.dy > canvas.height - floor) {
-      this.dy = -this.dy * friction;
-      this.radius *= .6;
-      if (ballArray) {
-        // Parent
+    // Hits the floor
+    if (this.y + this.radius + this.dy > CANVAS.height - FLOOR_SIZE) {
+      this.dy = -this.dy * FRICTION;
+      this.radius *= STAR_REDUCTION;
+      // Only parent should spawn children
+      if (OBJECTS_ARRAY) {
         this.spawnChildren();
       }
     } else {
-      this.dy += gravity;
+      this.dy += GRAVITY;
     }
 
-    if (this.x + this.radius + this.dx > canvas.width ||
+    if (this.x + this.radius + this.dx > CANVAS.width ||
         this.x - this.radius + this.dx < 0) {
       this.dx = -this.dx;
     }
@@ -79,46 +53,65 @@ function Ball(x, y, dx, dy, radius, ballArray) {
   }
 
   this.draw = function() {
-    var gradStar = c.createRadialGradient(this.x, this.y, this.radius * .1,
+    var gradStar = CTX.createRadialGradient(this.x, this.y, this.radius * .1,
                                           this.x, this.y, this.radius * 2);
 
-    gradStar.addColorStop(0, this.glow);
-    gradStar.addColorStop(1, this.glow);
-    c.beginPath();
-    c.arc(this.x, this.y, this.radius * 1.3, 0, Math.PI * 2, false);
-    c.fillStyle = this.glow;
-    c.fill();
-    c.closePath();
+    gradStar.addColorStop(0, STAR_GLOW);
+    gradStar.addColorStop(1, STAR_GLOW);
+    CTX.beginPath();
+    CTX.arc(this.x, this.y, this.radius * 1.3, 0, Math.PI * 2, false);
+    CTX.fillStyle = STAR_GLOW;
+    CTX.fill();
+    CTX.closePath();
 
-    gradStar.addColorStop(0, this.color);
-    gradStar.addColorStop(.5, this.glow);
-    c.beginPath();
-    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    c.fillStyle = gradStar;
-    c.fill();
-    c.closePath();
+    gradStar.addColorStop(0, STAR_COLOR);
+    gradStar.addColorStop(.5, STAR_GLOW);
+    CTX.beginPath();
+    CTX.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    CTX.fillStyle = gradStar;
+    CTX.fill();
+    CTX.closePath();
   }
 
   this.spawnChildren = function() {
     for (let i = 0; i < randomIntFromRange(4, 8); i++) {
       var childRadius = 3
-      var dxChild = randomIntFromRange(-dxValue, dxValue);
+      var dxChild = randomIntFromRange(-DX_VALUE, DX_VALUE);
       var dyChild = randomIntFromRange(this.dy * .3, this.dy * .9);
-      ballArray.push(new Ball(this.x, this.y, dxChild, dyChild, childRadius, 0));
+      OBJECTS_ARRAY.push(new Ball(this.x, this.y, dxChild, dyChild, childRadius, 0));
     }
+  }
+}
+
+function Floor() {
+  this.x = 0;
+  this.y = CANVAS.height - FLOOR_SIZE;
+
+  this.draw = function() {
+    var gradFloor = CTX.createLinearGradient(0, CANVAS.height, 0, this.y);
+    gradFloor.addColorStop(0, LOWER_FLOOR_COLOR);
+    gradFloor.addColorStop(1, FLOOR_COLOR)
+    CTX.fillStyle = gradFloor;
+    CTX.fillRect(this.x, this.y, CANVAS.width, FLOOR_SIZE);
+  }
+
+  this.update = function() {
+    this.draw();
   }
 }
 
 function skyFall() {
   var radius = randomIntFromRange(8, 16);
-  var x = randomIntFromRange(radius, canvas.width - radius);
-  var y = radius + 10;
-  var dx = randomIntFromRange(-dxValue, dxValue);
+  var x = randomIntFromRange(radius, CANVAS.width - radius);
+  var y = radius;
+  var dx = randomIntFromRange(-DX_VALUE, DX_VALUE);
   var dy = randomIntFromRange(10, 20);
-  ballArray.push(new Ball(x, y, dx, dy, radius, ballArray));
+  OBJECTS_ARRAY.push(new Ball(x, y, dx, dy, radius, OBJECTS_ARRAY));
 }
 
 function init() {
+  OBJECTS_ARRAY.length = 0;
+  OBJECTS_ARRAY.push(new Floor());
   for (let i = 0; i < randomIntFromRange(1, 5); i++) {
     skyFall()
   }
@@ -126,19 +119,29 @@ function init() {
 
 function animate() {
     requestAnimationFrame(animate);
-    c.clearRect(0, 0, canvas.width, canvas.height);
+    CTX.clearRect(0, 0, CANVAS.width, CANVAS.height);
 
-    for (var i = 0; i < ballArray.length; i++) {
-      if (ballArray[i].radius < 1) {
-        ballArray.splice(i, 1);
+    for (var i = 0; i < OBJECTS_ARRAY.length; i++) {
+      if (OBJECTS_ARRAY[i].radius < 1) {
+        OBJECTS_ARRAY.splice(i, 1);
       }
-      if (ballArray.length > 0) {
-        ballArray[i].update();
+      if (typeof(OBJECTS_ARRAY[i]) != 'undefined') {
+        OBJECTS_ARRAY[i].update();
       }
     }
 
 }
 
-setInterval(skyFall, 2000);
+setInterval(skyFall, INTERVAL_TIME);
 init();
 animate();
+
+addEventListener('click', () => {
+  skyFall()
+});
+
+addEventListener('resize', () => {
+    CANVAS.width = innerWidth;
+    CANVAS.height = innerHeight;
+    init();
+});
