@@ -11,9 +11,8 @@ const mouse = {
     y: innerHeight / 2
 }
 
-const colors = ['#2185C5', '#7ECEFD', '#FFF6E5', '#FF7F66'];
 const gravity = 1;
-const friction = .95;
+const friction = .6;
 
 addEventListener('click', () => {
   init();
@@ -48,11 +47,13 @@ function Ball(x, y, dx, dy, radius, color) {
     this.dx = dx;
     this.dy = dy;
     this.radius = radius;
-    this.color = color;
+    this.color = "rgba(224, 225, 255, 1)";
+    this.glow = "rgba(224, 225, 255, .01)";
 
   this.update = function() {
     if (this.y + this.radius + this.dy > canvas.height) {
       this.dy = -this.dy * friction;
+      this.radius /= 2
     } else {
       this.dy += gravity;
     }
@@ -67,12 +68,18 @@ function Ball(x, y, dx, dy, radius, color) {
   }
 
   this.draw = function() {
+    if(this.radius > 1){
+      var gradStar = c.createRadialGradient(this.x, this.y, this.radius / 2,
+                                            this.x, this.y, this.radius * 2);
+
+      gradStar.addColorStop(0, this.color);
+      gradStar.addColorStop(1, this.glow);
       c.beginPath();
       c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-      c.fillStyle = this.color;
+      c.fillStyle = gradStar;
       c.fill();
-      c.stroke();
       c.closePath();
+    }
   }
 }
 
@@ -80,14 +87,13 @@ function Ball(x, y, dx, dy, radius, color) {
 let ballArray;
 function init() {
   ballArray = []
-  for (let i = 0; i < 200; i++) {
-    var radius = randomIntFromRange(10, 20);
+  for (let i = 0; i < 100; i++) {
+    var radius = 10;
     var x = randomIntFromRange(radius, canvas.width - radius);
-    var y = randomIntFromRange(0, canvas.height - 3*radius);
-    var dx = randomIntFromRange(-2, 2);
-    var dy = randomIntFromRange(-2, 2);
-    var color = randomColor(colors)
-    ballArray.push(new Ball(x, y, dx, 1, radius, color));
+    var y = radius + 10;
+    var dx = randomIntFromRange(-3, 3);
+    var dy = randomIntFromRange(-2, 10);
+    ballArray.push(new Ball(x, y, dx, dy, radius));
   }
 }
 
